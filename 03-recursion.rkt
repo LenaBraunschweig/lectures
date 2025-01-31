@@ -6,19 +6,32 @@
 ;; Recursion
 
 - what is a recursive function?
+- a function that calls itself
 
 - what are some common "rules" for writing recursive functions?
+  - have a base (terminal) case
+  - each recursive cal should be solving a "sub-problem" of the original
+  - idea: make profress towards base case in each recursive application
+    - ensures termination
 -----------------------------------------------------------------------------|#
 
 ;; Factorial: n! = n * (n - 1) * (n - 2) * ... * 1
 (define (factorial n)
-  (void))
+  (if (= n 1)
+    1 
+    (* n (factorial (sub1 n)))))
+
+(trace factorial)
 
 ; (trace factorial)
 
 ;; Integer summation: m + (m + 1) + (m + 2) + ... + n
 (define (sum-from-to m n)
-  (void))
+  (if (> m n)
+    0
+    (+ m (sum-from-to (add1 m) n))))
+
+(trace sum-from-to)
 
 ; (trace sum-from-to)
 
