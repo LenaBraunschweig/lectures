@@ -88,8 +88,12 @@
 - what is an accumulator?
   - hangs onto the intermediate result of final
   - normally, the stack frame keeps track of the intermediates
+    -the stack builds until the base case is reached, then computes backwards
 
 - why would we use these techniques?
+  - don't have the stack frames that are required when we do structural recursion
+  - gives us constant space memory
+    - same amount as a loop
 -----------------------------------------------------------------------------|#
 
 (define (factorial-tail n [acc 1])
@@ -149,21 +153,44 @@
 
 ;; count-elements: count the number of elements in a tree (a nested list)
 (define (count-elements tree)
-  (void)) ; recursive case
+  (cond [(empty? tree) 0] ; if it's empty, the amount of elements is 0
+        [(not (pair? tree)) 1] ; if there is no pair, then there is just 1 item
+        [else (+(count-elements (car tree))
+                (count-elements (cdr tree)))])) ; structurally recursive case
 
 ;; repeat: create a list of n copies of x
 (define (repeat n x)
-  (void))
+  (if (= n 0) 
+    '()
+    (cons(x (repeat (sub1 n) x)))))
+
+(define (repeat-list n lst)
+  (if (= n 0)
+    '()
+    (concat lst (repeat-list (sub1 n) lst))))
 
 ;; reverse: reverse the elements of a list
 (define (reverse lst)
-  (void))
+  (if (empty? lst)
+    '()
+    (concat (reverse (rest lst)) 
+            (cons (first lst) '())))) ; this implementation is n^2, very sad :(
+
+(define (reverse-tail lst [acc '()])
+  (if (empty? lst)
+    acc
+    (reverse-tail (rest lst)
+                  (cons (first lst) acc))))
+
+(trace reverse-tail)
 
 #|-----------------------------------------------------------------------------
-;; Generative recursion
+;; Generative recursion (aka algorithm)
 
 - what is generative recursion, and how does it differ from structural 
   recursion?
+    - a recursive style that figures out dynamically what the recursion looks like
+    - very hard to prove the correctness of (no structural decomposition)
 -----------------------------------------------------------------------------|#
 
 (define (gcd m n)
@@ -171,3 +198,7 @@
     [(= m 0) n]
     [(= n 0) m]
     [else (gcd n (remainder m n))]))
+
+(trace gcd)
+
+;; find the structural solution, then translate it to some form of loop or tail-form recursion
