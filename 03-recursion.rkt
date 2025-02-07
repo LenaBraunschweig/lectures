@@ -146,7 +146,7 @@
 (define (concat l1 l2)
   (if (empty? l1)
     l2
-    (concat (first l1) 
+    (concat (first l1)
             (concat (rest l1)) l2)))
 
 (trace concat)
