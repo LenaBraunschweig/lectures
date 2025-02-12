@@ -85,6 +85,8 @@ Some useful built-in HOFs and related functions:
     res)
     (mypromise-val p)))
 
+#; (define delayed-sum (curry foldr (lambda(x r) (delay (+ x (force r)))) (delay 0)))
+
 #|-----------------------------------------------------------------------------
 ;; Some list-processing HOFs
 
@@ -128,8 +130,34 @@ Some useful built-in HOFs and related functions:
 
 (filter even? (map (curry + 5) (range 20)))
 
+(define (filter p lst)
+  (cond 
+    [(empty? lst) '()]
+    [(p (first lst) (cons (first lst) (filter p (rest lst))))]
+    [else (filter p (rest lst))]
+    ))
+
+
+(define (summation lst)
+  (if (empty? lst)
+    0
+    (+ (first lst) (summation (rest lst)))))
+
+;; follows primitive recursion
+;; (f 5 (f 6 (f 3 v))) where v is the base case and f is the function/operation
+;; ex. (foldr + 0 '(5 6 3))) -> (+ 5 (+ 6 (+ 3 0)))
+
+(define (foldr f v lst)
+  (if (empty? lst)
+    v
+    (f (first lst) (foldr f v (rest lst)))))
+
+(define sum (curry foldr + 0))
+(define product (curry foldr * 1))
+(define copy (curry foldr cons '()))
 
 ;; `foldr` examples
+;; starts with the right most value in the cons first
 #; (values
     (foldr + 0 (range 10))
 
@@ -143,24 +171,13 @@ Some useful built-in HOFs and related functions:
 
 (foldr + 0 (range 10))
 
-#;
-(define (summation lst)
-  (if (empty? lst)
-    0
-    (+ (first lst) (summation (rest lst)))))
-
-
-;; definition of foldr
-(define (foldr op v lst)
-  (if (empty? lst)
-    v
-    (op (first lst) (foldr op v (rest lst)))))
-
-(define summation (curry foldr + 0))
+;;(define summation (curry foldr + 0))
 (define concat (curry foldr cons))
 
 
 ;; `foldl` examples
+;; starts with the left most value first in the recursion
+  ;; reverses a list with cons, since the first item is being used first with the base case
 #; (values
     (foldl + 0 (range 10))
     
@@ -172,11 +189,18 @@ Some useful built-in HOFs and related functions:
            '()
            (range 5)))
 
-;; foldl definition
-(define (foldl op acc lst)
+(define (sum-tail lst [acc 0])
   (if (empty? lst)
     acc
-    (foldl op (op (first lst) acc) (rest lst))))
+    (sum-tail (rest lst) (+ (first lst) acc))))
+
+;; foldl definition
+(define (foldl f acc lst)
+  (if (empty? lst)
+    acc
+    (foldl f (f (first lst) acc) (rest lst))))
+
+(define sum-tail-curry (curry foldl + 0))
 
 #|-----------------------------------------------------------------------------
 ;; Lexical scope
@@ -185,4 +209,35 @@ Some useful built-in HOFs and related functions:
   regardless of when it is used
 
 - This leads to one of the most important ideas we'll see: the *closure*
+- Lambda remembers all variables in its scope
+  - keeps variables that are local in the scope of its creation
+
 -----------------------------------------------------------------------------|#
+
+(define (simple x)
+  (let ([loc 10])
+    (* x loc)))
+
+(define (weird x)
+  (let ([loc 10])
+    (lambda()
+      (* x loc))))
+
+;; (f) will call the function, but it still defined as a procedure
+(define f (weird 5))
+
+(define (make-adder x)
+  (lambda (y) (+ x y)))
+
+(define a (make-adder 1)) ;; creates a function with x as 1, then you can call (a #)
+
+(define (make-obj)
+  (let ([attr 0])
+    (lambda (cmd)
+      (case cmd
+        ['up (set! attr (add1 attr))]
+        ['down (set! attr (sub1 attr))]
+        ['show (println attr)]
+      ))))
+
+(define o1 (make-obj))
