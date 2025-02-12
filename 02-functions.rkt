@@ -15,7 +15,8 @@
              (println z)
              (* x (+ y z))))
 
-(define (f3 x) (add1 x))
+(define (f3 x) 
+  (add1 x))
 
 (define (f4 x y z)
   (println x)

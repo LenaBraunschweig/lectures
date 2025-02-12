@@ -70,7 +70,15 @@ A sexp is either an *atom* or a *list*.
 ;; Let's write some (syntactically) valid sexps!
 ;; Note: `#;` is a convenient, special "sexp comment"
 
+52
+-5
+5/8
 
+#; foo
+
+#; ()
+#; (1 2 3)
+#; (define (foo x y))
 
 #|-----------------------------------------------------------------------------
 ;; Evaluating sexps
