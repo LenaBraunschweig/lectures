@@ -160,7 +160,7 @@
 
 ;; repeat: create a list of n copies of x
 (define (repeat n x)
-  (if (= n 0) 
+  (if (= n 0)
     '()
     (cons(x (repeat (sub1 n) x)))))
 
