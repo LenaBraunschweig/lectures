@@ -4,6 +4,12 @@
          (for-syntax racket/base)
          (for-syntax racket/list))
 
+(syntax (foo bar "hello")) ;; same as #'(foo bar "hello")
+
+(define s #'(if #t
+      (println "hi")
+      (println "hello")))
+
 #|------------------------------------------------------------------------------
 ;; Syntax objects
 
@@ -26,6 +32,12 @@
     (syntax-column s3)
     (syntax->datum s3))
 
+;(syntax-source s)
+;(syntax-line s)
+;(syntax-column s)
+;(syntax->datum s) ;; convert the syntax object into datum (aka an sexp)
+;(eval-syntax s) ;; evaluates the s expression
+
 ;; `eval-syntax` evaluates syntax objects, like `eval` for sexps
 
 #; (eval-syntax s4)
@@ -38,10 +50,20 @@
 
 ;; `define-syntax` defines a macro
 
+;; the input syntax is turned into an output syntax
+#;(define-syntax (foo stx)
+  #'(hi)) ;; if I change it be a quote, then it will print properly (because its run corretly)
+
+;; (syntax->datum (expand-once #'(foo)))
+
+;; this method will add 1 to the second expression passed, it works because second sexp is unquasied
+(define-syntax (foo stx)
+  (let ([sexp (syntax->datum stx)]) ;; we can quasi-syntax, and unquasi with a # sign in front
+        #`(add1 #,(second sexp)))) ;; first and second are access options that we can use
+
 (define-syntax say-hi
   (lambda (stx) ; `stx` refers to the original syntax object 
     #`(quote (hi #,stx))))
-
 
 (define-syntax (say-hi2 stx) ; alternate form
   #`(quote (hi #,stx)))
@@ -49,14 +71,35 @@
 
 ;; define a macro that supports infix notation (for binary functions)
 (define-syntax (infix stx)
-  (void))
+  (let ([sexp (second (syntax->datum stx))]) ;; second will pick the second part of the expression, so it will skip infix
+    #`(#,(second sexp) #,(first sexp) #,(third sexp))))
 
-#; (syntax->datum (expand-once #'(infix (2 * 3))))
+
+(define-syntax (infix-2 stx)
+  (syntax-case stx()
+    [(_ (lhs op rhs)) ;; input form
+     #'(op lhs rhs)])) ;; matched to the new syntax
+
+(syntax->datum (expand-once #'(infix (2 * 3))))
 
 
+;; (my-if test e1 e2)
+;;    -> (cond [test e1]
+;;             [else e2]
 ;; define our own `if` special form (based on cond)
 (define-syntax (my-if stx)
-  (void))
+  (let ([sexp (syntax->datum stx)])
+    #`(cond [#,(second sexp) #,(third sexp)]
+            [else #,(fourth sexp)])))
+;; special forms are for the most part, just syntax transformers (different versions of the syntax definitions)
+
+(define-syntax (my-if-2 stx)
+  (syntax-case stx()
+    [(_ test e1 e2) ;; variables to be used in the result syntax
+     #'(cond [(infix test) e1]
+             [else e2])]))
+
+;; syntax case is convienent for writing syntax transformers
 
 #; (syntax->datum
     (expand-once #'(my-if (< 1 2)
@@ -76,7 +119,7 @@
      #'(op lhs rhs)]))
 
 
-(define-syntax (my-if-2 stx)
+(define-syntax (my-if-3 stx)
   (syntax-case stx (then otherwise) ; parentheses enclose syntax "literals"
     [(_ test exp1 exp2) ; matched ids can be used directly in syntax forms
      #'(cond [test exp1]
@@ -97,7 +140,10 @@
 
 
 ;; define-syntax-rule is shorthand for a limited form of `syntax-case`
-(define-syntax-rule (my-if-3 test exp1 exp2)
+(define-syntax-rule (infix-3 (lhs op rhs))
+  (op lsh rhs))
+
+(define-syntax-rule (my-if-4 test exp1 exp2)
   (cond [test exp1]
         [else exp2]))
 
@@ -110,7 +156,12 @@
 
 ;; define a macro that implements a loop
 (define-syntax-rule (loop n body)
-  (void))
+  (let rec ([i 0])
+    (when (< i n)
+      body
+      (rec (add1 i))))) ;; rec acts like a local recurisve call
+;; we are not calling loop, we are just referencing the body in this context
+;; you won't be able to access i since you can't access the details of the transformed code
 
 ;; can we interact with the `i` introduced in the `loop` macro from "outside"?
 #; (loop 10 (println i))
