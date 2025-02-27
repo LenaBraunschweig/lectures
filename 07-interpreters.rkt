@@ -167,23 +167,47 @@ Review: What is parsing?
 ;; Interpreter
 ;; assoc returns the pair with the first item containing the item being searched for
   ;; ex. assoc 'x '(x . 10) will return (x . 10)
-(define (eval expr [env '()])
+;; you can either eval in the var-exp id, or you can do it in the let-expression
+  ;; when done in the variable access, we consider it lazy
+    ;; in the lazy version, each time you access the same variable, you have to evaluate it again (needs delay and force)
+
+(define (eval expr [env '()]) ; start eval with an empty env, by default
   (match expr
+    ;; integers evaluate to themselves
     [(int-exp val)
      val]
-    [(arith-exp "ADD" lhs rhs)
-     (+ (eval lhs env) (eval rhs env))]
+
+    ;; use Racket's +/* to evaluate arithmetic expressions
+    [(arith-exp "PLUS" lhs rhs)
+     (+ (eval lhs env) (eval rhs env))] ; recursive evaluation
     [(arith-exp "TIMES" lhs rhs)
-     (* (eval lhs env) (eval rhs env))]
+     (* (eval lhs env) (eval rhs env))] ; recursive evaluation
+    
+    #;
+    ;; variables are looked up in the environment, strict evaluation
     [(var-exp id)
-     (cdr (assoc id env))]
-    [(let-exp (list id) (list exp) body)
-    ;; first cons creating binding, while the second cons puts it in the new environment
-     (let ([nenv (cons (cons id (eval exp env)) env)])
-      (eval body nenv))]
-    [(let-exp (list id ...) (list exp ...) body)
-     (let ([nvars (map cons id (map (lambda (e) (eval e env)) exp))])
-      (eval body (append nvars env))]))
+     (cdr (assoc id env))
+     ]
+    
+    ;; lazy evaluation
+    [(var-exp id)
+      (eval (cdr (assoc id env)) env)]
+
+    ;; single variable let expression
+    #; [(let-exp (list id)
+              (list val)
+              body)
+     (eval body (cons (cons id (eval val env)) env)) ; "strict" evaluation 
+     ]
+    
+    ;; multiple variable let expressions, strict evaluation
+    [(let-exp (list id ...)
+              (list val ...)
+              body)
+     (let ([nvars (map cons id
+                            (map (lambda (v) (eval v env)) ;; changing to a cons would just give us a quoted version
+                                 val))])
+       (eval body (append nvars env)))]))
 
 ;; creates an open to type sectiont that runs the eval after enter is pressed
 (define (repl)

@@ -11,6 +11,7 @@ E.g.,
 - lambda definition: `(lambda (x) (+ x 1))`
 
 - function application: `((lambda (x) (+ x 1)) 10)`
+  - calls the function on the argument 10
 
 Though our language will not support named functions a la Racket's `define`,
 we can use `let` to bind identifiers to lambdas. E.g.,
@@ -57,10 +58,10 @@ we can use `let` to bind identifiers to lambdas. E.g.,
 (struct let-exp (ids vals body) #:transparent)
 
 ;; lambda expression
-(struct lambda-exp () #:transparent)
+(struct lambda-exp (id body) #:transparent)
 
 ;; function application
-(struct app-exp () #:transparent)
+(struct app-exp (lhs rhs) #:transparent)
 
 
 ;; Parser
@@ -85,14 +86,18 @@ we can use `let` to bind identifiers to lambdas. E.g.,
      (let-exp id (map parse val) (parse body))]
     
     ;; lambda expressions
-    [_ (void)]
+    [(list 'lambda (list id) body) 
+      (lambda-exp id parse(body))] ;; the body itself (like (+ x 1)) needs to be parsed
 
     ;; function application
-    [_ (void)]
+    [(list fn arg) 
+      (app-exp (parse fn) (parse arg))]
 
     ;; basic error handling
     [_ (error (format "Can't parse: ~a" sexp))]))
 
+;; acts like a lambda in the lexical environment (where the code was typed)
+(struct closure (id body env) #:transparent)
 
 ;; Interpreter
 (define (eval expr [env '()])
@@ -122,10 +127,17 @@ we can use `let` to bind identifiers to lambdas. E.g.,
         (eval body (append vars env)))]
 
     ;; lambda expression
-    [_ (void)]
+    [(lambda-exp id body)  ;; need to be able to save its environment so that let expressions will save
+      (closure id body env)] ; captures current enviornment
     
     ;; function application
-    [_ (void)]
+    [(app-exp lhs rhs) 
+    ;; e.g. (f 10), (f (+ 1 2)), ((lambda (x) (+ x 5)))
+    ;; left hand size needs to give us a lambda
+      (let* ([clo (eval lhs env)] ;; lhs gives lambda, rhs gives us argument
+             [arg (eval rhs env)])
+        (eval (closure-body clo)
+          ((cons (closure-id clo) arg) (closure-env clo))))] ;; accesses the body argument of the lambda-exp struct
 
     ;; basic error handling
     [_ (error (format "Can't evaluate: ~a" expr))]))
