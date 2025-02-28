@@ -10,12 +10,13 @@ support for new language constructs?
 
 Option 1: modify the interpreter to recognize and implement new constructs
 
-Option 2: restrict "core" language to a small set of features and ...?
+Option 2: restrict "core" language (simplest vocabulary) to a small set of features and ...?
 
 ---
 
 Pros/Cons? (Discussion)
-
+  - option 1 is faster, better for memory, and easy to test
+  - option 2 is easier to implement and easy to scale
 ---
 
 Parse / Desugar / Interpret workflow:
@@ -38,9 +39,18 @@ e.g., how might we desugar a lambda of more than 1 parameter?
     (lambda (x y z ...)
       body)
 
+    (lambda (x)
+      (lambda (y)
+        (lambda(z)
+          ... body)))
+
 e.g., how might we desugar a function application with more than 1 argument?
 
     (f x y z ...)
+    (((f x ) y) z)
+
+- no new features, but instead new syntax
+- acts as a relly simple foldr
 
 -----------------------------------------------------------------------------|#
 
@@ -80,7 +90,7 @@ e.g., how might we desugar a function application with more than 1 argument?
 
     ;; arithmetic expressions
     [(list '+ lhs rhs)
-     (arith-exp "PLUS" (parse lhs) (parse rhs))] 
+     (arith-exp "PLUS" (parse lhs) (parse rhs))]
     [(list '* lhs rhs)
      (arith-exp "TIMES" (parse lhs) (parse rhs))]
     
@@ -105,8 +115,17 @@ e.g., how might we desugar a function application with more than 1 argument?
 
 
 ;; Desugar-er -- i.e., syntax transformer
+;; all elements in the tree need to be desugared
 (define (desugar exp)
   (match exp
+    [(arith-exp op lhs rhs)
+      (arith-exp op (desugar lhs) (desugar rhs))]
+    [(let-exp ids vals body)
+      (let-exp ids (map desugar vals) (desugar body))]
+    [(lambda-exp ids body)
+      (foldl (lambda (id body) (lambda-exp id body)) (desugar body) ids)]
+    [(app-exp fn args)
+      (foldl (lambda (id fn) (app-exp fn id) (desugar fn) (map desugar args)))]
     (_ exp)))
 
 
@@ -155,7 +174,7 @@ e.g., how might we desugar a function application with more than 1 argument?
 
 ;; REPL
 (define (repl)
-  (let ([stx (parse (read))])
+  (let ([stx (desugar (parse (read)))])
     (when stx
       (println (eval stx))
       (repl))))

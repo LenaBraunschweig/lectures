@@ -43,6 +43,8 @@
 We're going to start with a very simple language and slowly add to it. Our
 first iteration will support integer literals, the binary arithmetic operations
  +` and `*`, and `let`-bound variables. The syntax will mirror Racket's. 
+
+ - lazy version: when we have a variable, need to look at another variable instead of just evaluating
 -----------------------------------------------------------------------------|#
 
 ;; Some test cases

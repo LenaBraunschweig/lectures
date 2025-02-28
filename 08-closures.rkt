@@ -6,6 +6,8 @@
 We will add functions (as lambda expressions) and function applications to our
 language. Our functions will have exactly one formal parameter each.
 
+- interpreter tokenizes -> parses -> evaluates
+
 E.g.,
 
 - lambda definition: `(lambda (x) (+ x 1))`
@@ -97,7 +99,7 @@ we can use `let` to bind identifiers to lambdas. E.g.,
     [_ (error (format "Can't parse: ~a" sexp))]))
 
 ;; acts like a lambda in the lexical environment (where the code was typed)
-(struct closure (id body env) #:transparent)
+(struct closure (id body env) #:transparent) ;; captures the current environement, data structure created by the interpreter
 
 ;; Interpreter
 (define (eval expr [env '()])
