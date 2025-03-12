@@ -93,7 +93,6 @@ e.g., how might we desugar a function application with more than 1 argument?
      (arith-exp "PLUS" (parse lhs) (parse rhs))]
     [(list '* lhs rhs)
      (arith-exp "TIMES" (parse lhs) (parse rhs))]
-    
     ;; identifiers (variables)
     [(? symbol?)
      (var-exp sexp)]
